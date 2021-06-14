@@ -1,22 +1,23 @@
 import pygame
 import psutil
-import platform
-import time
+import cpuinfo
 
 BRANCO = (255,255,255)
 PRETO = (0,0,0)
 LARANJA = (246,130,0)
 VERMELHO = (230,0,0)
 AZUL = (0,0,255)
+CINZA = (200, 200, 200)
 
 pygame.init()
 largura_tela, altura_tela = 1024, 600
 tela = pygame.display.set_mode((largura_tela, altura_tela))
 tela.fill(BRANCO)
+pygame.font.init()
 
 
 def mostra_texto(texto, pos, cor, cent=False):
-    font = pygame.font.SysFont('calibri', 22, bold=True)
+    font = pygame.font.SysFont('calibri', 22)
     text = font.render(f"{texto}", 1, cor)
     if cent:
         textpos = text.get_rect(center=pos,)
@@ -65,31 +66,64 @@ def mostra_uso_memoria():
 def format_memory(info):
     return round(info/(1024*1024*1024), 2)
 
-def cpu():
-    processador = platform.processor()
-    plat = platform.node()
-    text = f"Processador:   {processador}"
-    mostra_texto(text,(20,120), PRETO)
-    text = f"Plataforma:     {plat}"
-    mostra_texto(text,(20,150), PRETO)
+def texto_cpu(s1, nome, chave, pos_y):
+    font = pygame.font.SysFont('calibri', 22)
+    text = font.render(nome, True, PRETO)
+    s1.blit(text, (10, pos_y))
+    info_cpu = cpuinfo.get_cpu_info()
+    if chave == "freq":
+        s = str(round(psutil.cpu_freq().current, 2))
+    elif chave == "nucleos":
+    	s = str(psutil.cpu_count())
+    	s = s + " (" + str(psutil.cpu_count(logical=False)) + ")"
+    else:
+        s = str(info_cpu[chave])
+        
+    text = font.render(s, True, PRETO)
+    s1.blit(text, (180, pos_y))
 
-def mostra_uso_cpu():
-    capacidade = psutil.cpu_percent(interval=0)
-    larg = largura_tela - 2*20
-    pygame.draw.rect(tela, AZUL, (20, 260, larg, 50))
-    larg = larg*capacidade/100
-    pygame.draw.rect(tela, VERMELHO, (20, 260, larg, 50))
-    texto_barra = "Uso da CPU:"
-    mostra_texto(texto_barra, (20,240), PRETO)
+def cpu():
+    s1 = pygame.surface.Surface((largura_tela, 115))
+    s1.fill(BRANCO)
+    texto_cpu(s1, "Nome:", "brand_raw", 10)
+    texto_cpu(s1, "Arquitetura:", "arch", 30)
+    texto_cpu(s1, "Palavra (bits):", "bits", 50)
+    texto_cpu(s1, "Frequência (MHz):", "freq", 70)
+    texto_cpu(s1, "Núcleos (físicos):", "nucleos", 90)
+    tela.blit(s1, (0, 100))
+
+def uso_cpu():
+    s = pygame.surface.Surface((largura_tela, altura_tela-250))
+    s.fill(CINZA)
+    l_cpu_percent = psutil.cpu_percent(interval=1, percpu=True)
+    num_cpu = len(l_cpu_percent)
+    x = y = 10
+    desl = 10
+    alt = s.get_height() - 2*y
+    larg = (s.get_width()-2*y - (num_cpu+1)*desl)/num_cpu
+    d = x + desl
+    for i in l_cpu_percent:
+        pygame.draw.rect(s, VERMELHO, (d, y, larg, alt))
+        pygame.draw.rect(s, AZUL, 	(d, y, larg, (1-i/100)*alt))
+        d = d + larg + desl
+    mostra_texto("Uso da CPU por núcleo:", (512, 230), PRETO, cent=True)
+    # parte mais abaixo da tela e à esquerda
+    tela.blit(s, (0, 250))
 
 def memoria():
     disco = psutil.disk_usage('.')
-    text = f"Total:{format_memory(disco.total):19} GB"
+    text = f"Total:"
     mostra_texto(text,(20,120), PRETO)
-    text = f"Em uso:{format_memory(disco.used):15} GB"
+    text = f"{format_memory(disco.total)} GB"
+    mostra_texto(text,(120,120), PRETO)
+    text = f"Em uso:"
     mostra_texto(text,(20,140), PRETO)
-    text = f"Livre: {format_memory(disco.free):19} GB"
+    text = f"{format_memory(disco.used)} GB"
+    mostra_texto(text,(120,140), PRETO)
+    text = f"Livre:"
     mostra_texto(text,(20,160), PRETO)
+    text = f"{format_memory(disco.free)} GB"
+    mostra_texto(text,(120,160), PRETO)
     text = f"Percentual de Disco Usado:   {disco.percent:}%"
     mostra_texto(text,(20,200), PRETO)
 
@@ -102,8 +136,7 @@ def rede():
 def mostra_conteudo(i):
     if i==0:
         cpu()
-        mostra_uso_cpu()
-        time.sleep(1)
+        uso_cpu()
 
     elif i==1:
         memoria()
@@ -113,13 +146,12 @@ def mostra_conteudo(i):
     elif i==2:
         rede()
 
+
 terminou = False
-i=0
-texto='Aba zero'
+i=1
 while not terminou:
     abas = desenha_abas()
     mostra_texto("Projeto de Bloco", (512, 70), PRETO, cent=True)
-    #mostra_texto(texto,(512,94),PRETO, cent=True)
     mostra_conteudo(i)
 
 
@@ -136,10 +168,8 @@ while not terminou:
                             i=1
                         elif index==2:
                             i=2
-                            texto=f"Clicou na aba {index}"
                         else:
                             i=3
-                            texto=f"Clicou na aba {index}"
 
     pygame.display.update()
     tela.fill(BRANCO)
