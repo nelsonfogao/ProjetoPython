@@ -16,6 +16,41 @@ largura_tela, altura_tela = 1024, 600
 tela = pygame.display.set_mode((largura_tela, altura_tela))
 tela.fill(BRANCO)
 pygame.font.init()
+        
+
+def mostra_texto(texto, pos, cor, cent=False, bold=False):
+    if bold:
+        font = pygame.font.SysFont('calibri', 22, bold=True)
+    else:
+        font = pygame.font.SysFont('calibri', 22)
+    text = font.render(f"{texto}", 1, cor)
+    if cent:
+        textpos = text.get_rect(center=pos,)
+        tela.blit(text, textpos)
+    else:
+        tela.blit(text, pos)
+
+def desenha_abas():
+    aba0 = pygame.Rect(1, 0, 204, 50)
+    pygame.draw.rect(tela, PRETO, aba0)
+    mostra_texto("CPU",(102.5,25), BRANCO, cent=True, bold=True)
+
+    aba1 = pygame.Rect(206, 0, 203, 50)
+    pygame.draw.rect(tela, PRETO, aba1)
+    mostra_texto("Memória",(307.5,25), BRANCO, cent=True, bold=True)
+
+    aba2 = pygame.Rect(410, 0, 204, 50)
+    pygame.draw.rect(tela, PRETO, aba2)
+    mostra_texto("Rede",(511.5,25), BRANCO, cent=True, bold=True)
+
+    aba3 = pygame.Rect(615, 0, 204, 50)
+    pygame.draw.rect(tela, PRETO, aba3)
+    mostra_texto("Arquivos",(716.5,25), BRANCO, cent=True, bold=True)
+
+    aba4 = pygame.Rect(820, 0, 203, 50)
+    pygame.draw.rect(tela, PRETO, aba4)
+    mostra_texto("Processos",(921.5,25), BRANCO, cent=True, bold=True)
+    return [aba0, aba1, aba2, aba3, aba4]
 
 def arquivos():
     lista = os.listdir()
@@ -44,35 +79,44 @@ def arquivos():
         mostra_texto(i, (520, y), PRETO)
         y = y+30
 
-def mostra_texto(texto, pos, cor, cent=False, bold=False):
-    if bold:
-        font = pygame.font.SysFont('calibri', 22, bold=True)
-    else:
-        font = pygame.font.SysFont('calibri', 22)
-    text = font.render(f"{texto}", 1, cor)
-    if cent:
-        textpos = text.get_rect(center=pos,)
-        tela.blit(text, textpos)
-    else:
-        tela.blit(text, pos)
+def info_proc(pid, y):
+    try:
+        p = psutil.Process(pid)
+        texto = f'{pid}'
+        mostra_texto(texto, (20, y), PRETO)
+        texto = f'{p.num_threads()}'
+        mostra_texto(texto, (120, y), PRETO)
+        texto = f'{p.cpu_times().user:.2f}'
+        mostra_texto(texto, (290, y), PRETO)
+        texto = f'{p.cpu_times().system:.2f}'
+        mostra_texto(texto, (460, y), PRETO)
+        texto = f'{p.memory_percent():.2f} MB'
+        mostra_texto(texto, (630, y), PRETO)
+        exe = p.exe().split('\\')
+        texto = f"{exe[-1]}"
+        mostra_texto(texto, (800,y), PRETO)
+    except:
+        pass 
 
-def desenha_abas():
-    aba0 = pygame.Rect(1, 0, 254, 50)
-    pygame.draw.rect(tela, PRETO, aba0)
-    mostra_texto("CPU",(128,25), BRANCO, cent=True, bold=True)
-
-    aba1 = pygame.Rect(256, 0, 255, 50)
-    pygame.draw.rect(tela, PRETO, aba1)
-    mostra_texto("Memória",(384,25), BRANCO, cent=True, bold=True)
-
-    aba2 = pygame.Rect(512, 0, 255, 50)
-    pygame.draw.rect(tela, PRETO, aba2)
-    mostra_texto("Rede",(640,25), BRANCO, cent=True, bold=True)
-
-    aba3 = pygame.Rect(768, 0, 255, 50)
-    pygame.draw.rect(tela, PRETO, aba3)
-    mostra_texto("Arquivos",(896,25), BRANCO, cent=True, bold=True)
-    return [aba0, aba1, aba2, aba3]
+def processos():
+    texto = "PID"
+    mostra_texto(texto, (20, 120), PRETO, bold=True)
+    texto = "# Threads"
+    mostra_texto(texto, (120, 120), PRETO, bold=True)
+    texto = "T. Usu."
+    mostra_texto(texto, (290, 120), PRETO, bold=True)
+    texto = "T. Sis."
+    mostra_texto(texto, (460, 120), PRETO, bold=True)
+    texto = "Mem.(%)"
+    mostra_texto(texto, (630, 120), PRETO, bold=True)
+    texto = "Executável"
+    mostra_texto(texto, (800, 120), PRETO, bold=True)
+    lista = psutil.pids()
+    lista = lista[:15]
+    y = 150
+    for i in lista:
+        info_proc(i, y)
+        y = y + 30
 
 def memoria():
     disco = psutil.disk_usage('.')
@@ -182,8 +226,11 @@ def mostra_conteudo(i):
     elif i==2:
         rede()
 
-    else:
+    elif i==3:
         arquivos()
+    
+    else:
+        processos()
 
 
 terminou = False
@@ -207,8 +254,10 @@ while not terminou:
                             i=1
                         elif index==2:
                             i=2
-                        else:
+                        elif index==3:
                             i=3
+                        else:
+                            i=4
 
     pygame.display.update()
     tela.fill(BRANCO)
